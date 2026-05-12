@@ -170,3 +170,78 @@ def save_sliding_window_csv(data: list[tuple[int, float]], filename: str) -> Non
         writer = csv.writer(f)
         writer.writerow(["pozycja_startu", "gc_content"])
         writer.writerows(data)
+
+def main():
+    """Główna funkcja sterująca przebiegiem programu."""
+    print("=== Generator sekwencji DNA w formacie FASTA ===\n")
+
+    # 1. Zbieranie i walidacja inputu od użytkownika
+    length = validate_positive_int("Podaj długość sekwencji: ")
+    seq_id = validate_id("Podaj ID sekwencji: ")
+    description = input("Podaj opis sekwencji: ").strip()
+    name = input("Podaj imię: ").strip()
+
+    # 2. Generacja "czystej" sekwencji DNA
+    sequence = generate_sequence(length)
+
+    # 3. Statystyki - KRYTYCZNE: liczone na czystej sekwencji, przed imieniem
+    stats = calculate_stats(sequence)
+
+    # 4. Wstawienie imienia (tylko do wersji zapisywanej w pliku)
+    sequence_with_name = insert_name(sequence, name)
+
+    # 5. Budowa rekordów FASTA - główny + dodatki
+    records = [format_fasta(seq_id, description, sequence_with_name)]
+
+    # Dodatek #4: komplementarna i odwrotnie komplementarna
+    comp, rev_comp = reverse_complement(sequence)
+    records.append(format_fasta(
+        f"{seq_id}_complement", "Sekwencja komplementarna", comp))
+    records.append(format_fasta(
+        f"{seq_id}_revcomp", "Sekwencja odwrotnie komplementarna", rev_comp))
+
+    # Dodatek #5: transkrypcja na mRNA
+    mrna = transcribe(sequence)
+    records.append(format_fasta(
+        f"{seq_id}_mRNA", "Transkrypt mRNA", mrna))
+
+    # 6. Zapis wszystkich rekordów do jednego pliku FASTA
+    filename = f"{seq_id}.fasta"
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write("\n".join(records) + "\n")
+
+    print(f"\nSekwencja zapisana do pliku: {filename}")
+
+    # 7. Wyświetlenie statystyk
+    print(f"\nStatystyki sekwencji (n={length}):")
+    for nt in ("A", "C", "G", "T"):
+        print(f"{nt}: {stats[nt]:.2f}%")
+    print(f"GC-content: {stats['GC']:.2f}%")
+
+    # 8. Dodatek #3: wyszukiwanie motywów
+    motif = input("\nPodaj motyw do wyszukania (Enter = pomiń): ").strip()
+    if motif:
+        positions = find_motif(sequence, motif)
+        if positions:
+            print(f"Motyw '{motif.upper()}' "
+                  f"znaleziono na pozycjach: {positions}")
+        else:
+            print(f"Motyw '{motif.upper()}' nie został znaleziony.")
+
+    # 9. Dodatek #7: analiza okien przesuwnych z zapisem do CSV
+    answer = input("\nCzy przeprowadzić analizę okien przesuwnych? (t/n): ")
+    if answer.strip().lower() == "t":
+        window = validate_positive_int(
+            "Podaj szerokość okna: ",
+            min_val=1,
+            max_val=length,
+        )
+        window_data = sliding_window_gc(sequence, window)
+        csv_filename = f"{seq_id}_sliding_gc.csv"
+        save_sliding_window_csv(window_data, csv_filename)
+        print(f"Wyniki sliding window zapisane do pliku: {csv_filename}")
+
+
+if __name__ == "__main__":
+    main()
+
