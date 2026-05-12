@@ -108,3 +108,65 @@ def validate_id(prompt: str) -> str:
             print("Błąd: ID nie może zawierać białych znaków.")
             continue
         return seq_id
+# ---------- Dodatki (4 sztuki, wymagane min. 4) ----------
+
+def reverse_complement(sequence: str) -> tuple[str, str]:
+    """Zwraca krotkę (komplementarna, odwrotnie_komplementarna).
+
+    Parowanie zasad: A<->T, C<->G.
+    Nić komplementarna - czytana w tym samym kierunku co oryginał.
+    Nić odwrotnie komplementarna - komplementarna odczytana 5'->3', czyli
+    odwrócona (w biologii to faktyczna druga nić DNA).
+    """
+    pairing = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
+    complement = ''.join(pairing[nt] for nt in sequence)
+    reverse_comp = complement[::-1]  # [::-1] to idiom Pythonowy na odwrócenie
+    return complement, reverse_comp
+
+
+def transcribe(sequence: str) -> str:
+    """Transkrypcja in silico: DNA -> mRNA przez zamianę T na U."""
+    return sequence.replace('T', 'U')
+
+
+def find_motif(sequence: str, motif: str) -> list[int]:
+    """Zwraca listę pozycji (indeksowanie od 1) wystąpień motywu.
+
+    Wyszukuje też nakładające się wystąpienia (w przeciwieństwie do str.find
+    w pętli, która by je pomijała).
+    """
+    positions = []
+    if not motif:
+        return positions
+
+    motif = motif.upper()
+    m = len(motif)
+    # iterujemy po wszystkich możliwych pozycjach startowych okna
+    for i in range(len(sequence) - m + 1):
+        if sequence[i:i + m] == motif:
+            positions.append(i + 1)  # +1 bo biolodzy liczą od 1, nie od 0
+    return positions
+
+
+def sliding_window_gc(sequence: str, window: int) -> list[tuple[int, float]]:
+    """GC-content w oknie przesuwnym o szerokości `window`, krok = 1.
+
+    Zwraca listę krotek (pozycja_startu_od_1, gc_content_w_procentach).
+    """
+    results = []
+    if window <= 0 or window > len(sequence):
+        return results
+
+    for i in range(len(sequence) - window + 1):
+        win = sequence[i:i + window]
+        gc = (win.count('G') + win.count('C')) / window * 100
+        results.append((i + 1, round(gc, 2)))
+    return results
+
+
+def save_sliding_window_csv(data: list[tuple[int, float]], filename: str) -> None:
+    """Zapisuje dane sliding window do pliku CSV (kolumny: pozycja, gc_content)."""
+    with open(filename, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["pozycja_startu", "gc_content"])
+        writer.writerows(data)
