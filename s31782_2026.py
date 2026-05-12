@@ -92,3 +92,19 @@ def validate_positive_int(prompt: str,
             continue
 
         return value
+
+# ---------- Funkcja pomocnicza ----------
+
+def validate_id(prompt: str) -> str:
+    """Pobiera ID sekwencji - nie może być puste ani zawierać białych znaków."""
+    while True:
+        seq_id = input(prompt).strip()
+        if not seq_id:
+            print("Błąd: ID nie może być puste.")
+            continue
+        # split() bez argumentów dzieli po dowolnych białych znakach;
+        # jeśli wynik ma więcej niż 1 element, znaczy że w ID była spacja/tab
+        if len(seq_id.split()) > 1:
+            print("Błąd: ID nie może zawierać białych znaków.")
+            continue
+        return seq_id
